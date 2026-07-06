@@ -1,0 +1,941 @@
+<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repuestos Chinos VZLA - Reporte por Proveedor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; color: #1f2937; }
+        
+        .header { background: white; border-bottom: 4px solid #dc2626; padding: 1.5rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .header-content { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        .logo-section { display: flex; align-items: center; gap: 1rem; }
+        .logo-icon { font-size: 2.5rem; color: #dc2626; font-weight: bold; }
+        .logo-text h1 { color: #111827; font-size: 1.5rem; font-weight: 700; }
+        .logo-text span { color: #dc2626; font-weight: 700; }
+        .logo-subtitle { color: #6b7280; font-size: 0.875rem; letter-spacing: 0.05em; text-transform: uppercase; }
+        .status-badge { background: #f3f4f6; padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; color: #059669; display: flex; align-items: center; gap: 0.5rem; }
+        .status-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        
+        /* --- FILTROS --- */
+        .filters-card { 
+            background: white; 
+            border-radius: 0.75rem; 
+            padding: 1.5rem; 
+            margin-bottom: 1.5rem; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .filters-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 1.5rem; 
+            margin-bottom: 1.5rem;
+            align-items: end;
+        }
+        .filter-group { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 0.4rem; 
+        }
+        .filter-group label { 
+            font-size: 0.75rem; 
+            font-weight: 700; 
+            color: #6b7280; 
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .filter-group select, 
+        .filter-group input { 
+            padding: 0.6rem 0.75rem; 
+            border: 1px solid #d1d5db; 
+            border-radius: 0.5rem; 
+            font-size: 0.875rem; 
+            background: white;
+            width: 100%;
+            transition: border-color 0.2s;
+        }
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+
+        /* --- CHECKBOXES DE DIFERENCIA --- */
+        .diff-checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            padding-top: 0.2rem;
+        }
+        .diff-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            cursor: pointer;
+            padding: 0.3rem 0.75rem;
+            border-radius: 9999px;
+            border: 2px solid #e5e7eb;
+            transition: all 0.2s;
+            font-size: 0.8rem;
+            font-weight: 500;
+            background: white;
+        }
+        .diff-checkbox-item:hover {
+            border-color: #9ca3af;
+        }
+        .diff-checkbox-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #dc2626;
+        }
+        .diff-checkbox-item.active-positive {
+            border-color: #dc2626;
+            background: #fef2f2;
+        }
+        .diff-checkbox-item.active-negative {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+        .diff-checkbox-item.active-zero {
+            border-color: #6b7280;
+            background: #f9fafb;
+        }
+        .diff-checkbox-item.active-all {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        .diff-checkbox-item .badge-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 2px;
+        }
+        .badge-dot.red { background: #dc2626; }
+        .badge-dot.green { background: #10b981; }
+        .badge-dot.gray { background: #6b7280; }
+        .badge-dot.blue { background: #3b82f6; }
+
+        /* --- BOTONES --- */
+        .filter-actions { 
+            display: flex; 
+            gap: 1rem; 
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 1.5rem;
+        }
+        .btn { 
+            padding: 0.625rem 1.5rem; 
+            border-radius: 0.5rem; 
+            font-weight: 600; 
+            cursor: pointer; 
+            border: none; 
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+        .btn-primary { background: #dc2626; color: white; }
+        .btn-primary:hover { background: #b91c1c; }
+        .btn-secondary { background: #e5e7eb; color: #374151; }
+        .btn-secondary:hover { background: #d1d5db; }
+        .btn-outline { background: transparent; color: #6b7280; border: 2px solid #d1d5db; }
+        .btn-outline:hover { background: #f3f4f6; }
+
+        /* --- KPIs --- */
+        .kpi-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 1.5rem; 
+            margin-bottom: 1.5rem; 
+        }
+        .kpi-card { 
+            background: white; 
+            border-radius: 0.75rem; 
+            padding: 1.5rem; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+            border-left: 4px solid; 
+        }
+        .kpi-card.red { border-left-color: #dc2626; }
+        .kpi-card.blue { border-left-color: #3b82f6; }
+        .kpi-card.green { border-left-color: #10b981; }
+        .kpi-card.dark { background: #1e293b; color: white; border-left-color: #f59e0b; }
+        .kpi-label { 
+            font-size: 0.7rem; 
+            font-weight: 700; 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em; 
+            margin-bottom: 0.5rem; 
+        }
+        .kpi-card.red .kpi-label { color: #dc2626; }
+        .kpi-card.blue .kpi-label { color: #3b82f6; }
+        .kpi-card.green .kpi-label { color: #10b981; }
+        .kpi-card.dark .kpi-label { color: #94a3b8; }
+        .kpi-value { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .kpi-card.red .kpi-value { color: #dc2626; }
+        .kpi-card.blue .kpi-value { color: #1e293b; }
+        .kpi-card.green .kpi-value { color: #10b981; }
+        .kpi-card.dark .kpi-value { color: #f59e0b; }
+        .kpi-subtitle { font-size: 0.8rem; color: #6b7280; }
+        .kpi-card.dark .kpi-subtitle { color: #94a3b8; }
+
+        /* --- TABLA --- */
+        .table-card { 
+            background: white; 
+            border-radius: 0.75rem; 
+            padding: 1.5rem; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+            overflow-x: auto; 
+        }
+        .table-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 1rem; 
+            flex-wrap: wrap; 
+            gap: 1rem; 
+        }
+        .table-title { 
+            font-weight: 700; 
+            font-size: 1.125rem; 
+            display: flex; 
+            align-items: center; 
+            gap: 0.75rem; 
+            flex-wrap: wrap; 
+        }
+        .filter-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.2rem 0.75rem;
+            border-radius: 9999px;
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        .filter-badge.active { background: #dc2626; color: white; }
+        .sort-control { display: flex; align-items: center; gap: 0.5rem; }
+        .sort-control select { 
+            padding: 0.5rem 0.75rem; 
+            border: 1px solid #d1d5db; 
+            border-radius: 0.5rem; 
+            font-size: 0.875rem; 
+            background: white; 
+            min-width: 220px; 
+            cursor: pointer; 
+        }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { 
+            font-weight: 600; 
+            color: #6b7280; 
+            font-size: 0.7rem; 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em; 
+            cursor: pointer; 
+            user-select: none; 
+            position: sticky; 
+            top: 0; 
+            background: white; 
+            z-index: 10; 
+        }
+        th:hover { color: #dc2626; }
+        tr:hover { background: #f9fafb; }
+        .text-right { text-align: right; }
+        .font-mono { font-family: 'Courier New', monospace; }
+        .status-tag { 
+            padding: 0.25rem 0.75rem; 
+            border-radius: 9999px; 
+            font-size: 0.7rem; 
+            font-weight: 600; 
+            display: inline-block; 
+        }
+        .status-pendiente { background: #fee2e2; color: #dc2626; }
+        .status-sobrepago { background: #d1fae5; color: #059669; }
+        .status-equilibrado { background: #f3f4f6; color: #6b7280; }
+        
+        .loading-container { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 3rem; color: #6b7280; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f4f6; border-top-color: #dc2626; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 1rem; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error-message { background: #fee2e2; color: #dc2626; padding: 1rem; border-radius: 0.5rem; margin: 1rem 0; text-align: center; border: 1px solid #fecaca; }
+
+        .chart-container { height: 400px; position: relative; }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 1024px) {
+            .filters-grid { grid-template-columns: repeat(2, 1fr); }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 768px) { 
+            .container { padding: 1rem; } 
+            .filters-grid { grid-template-columns: 1fr; }
+            .kpi-grid { grid-template-columns: 1fr; }
+            table { font-size: 0.75rem; }
+            th, td { padding: 0.5rem; }
+            .filter-actions { flex-direction: column; }
+            .btn { width: 100%; text-align: center; }
+            .diff-checkbox-group { justify-content: center; }
+            .header-content { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+
+
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <div class="logo-icon">金</div>
+                <div class="logo-text">
+                    <h1>Repuestos Chinos <span>VZLA</span></h1>
+                    <div class="logo-subtitle">Reporte Financiero por Proveedor</div>
+                </div>
+            </div>
+            <div class="status-badge"><span class="status-dot"></span> Datos actualizados</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="loading" class="loading-container">
+            <div class="spinner"></div>
+            <span>Cargando datos...</span>
+        </div>
+
+        <div id="error-container" style="display: none;"></div>
+
+        <div id="dashboard-content" style="display: none;">
+            
+            <div class="filters-card">
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label>Proveedor</label>
+                        <select id="filterProveedor"><option value="all">Todos</option></select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Tipo</label>
+                        <select id="filterTipo"><option value="all">Todos</option></select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Desde</label>
+                        <input type="date" id="filterDesde">
+                    </div>
+                    <div class="filter-group">
+                        <label>Hasta</label>
+                        <input type="date" id="filterHasta">
+                    </div>
+                </div>
+
+                
+                <div style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.4rem;">Diferencias</label>
+                    <div class="diff-checkbox-group">
+                        <label class="diff-checkbox-item active-all" id="diff-all">
+                            <input type="checkbox" value="all" checked="" onchange="toggleDiffFilter('all', this)">
+                            <span class="badge-dot blue"></span> Todos
+                        </label>
+                        <label class="diff-checkbox-item" id="diff-positive">
+                            <input type="checkbox" value="positive" onchange="toggleDiffFilter('positive', this)">
+                            <span class="badge-dot red"></span> Pendientes
+                        </label>
+                        <label class="diff-checkbox-item" id="diff-negative">
+                            <input type="checkbox" value="negative" onchange="toggleDiffFilter('negative', this)">
+                            <span class="badge-dot green"></span> Sobrepago
+                        </label>
+                        <label class="diff-checkbox-item" id="diff-zero">
+                            <input type="checkbox" value="zero" onchange="toggleDiffFilter('zero', this)">
+                            <span class="badge-dot gray"></span> Equilibrados
+                        </label>
+                    </div>
+                </div>
+
+                <div class="filter-actions">
+                    <button class="btn btn-primary" onclick="applyFilters()">Aplicar Filtros</button>
+                    <button class="btn btn-secondary" onclick="clearFilters()">Limpiar Todo</button>
+                </div>
+            </div>
+
+            
+            <div class="kpi-grid">
+                <div class="kpi-card red">
+                    <div class="kpi-label">💰 Total Compras</div>
+                    <div class="kpi-value" id="kpiTotalCompra">$0</div>
+                    <div class="kpi-subtitle">Suma de todas las compras</div>
+                </div>
+                <div class="kpi-card blue">
+                    <div class="kpi-label">💵 Total Pagos</div>
+                    <div class="kpi-value" id="kpiTotalPago">$0</div>
+                    <div class="kpi-subtitle">Suma de todos los pagos</div>
+                </div>
+                <div class="kpi-card dark">
+                    <div class="kpi-label">📊 Diferencia Total</div>
+                    <div class="kpi-value" id="kpiDiferencia">$0</div>
+                    <div class="kpi-subtitle">Compras - Pagos</div>
+                </div>
+                <div class="kpi-card green">
+                    <div class="kpi-label">📈 % Pagado</div>
+                    <div class="kpi-value" id="kpiPorcentaje">0%</div>
+                    <div class="kpi-subtitle">(Pagos / Compras) × 100</div>
+                </div>
+            </div>
+
+            
+            <div class="table-card">
+                <div class="table-header">
+                    <div class="table-title">
+                        📋 Resumen por Proveedor
+                        <span id="filterStatus"></span>
+                    </div>
+                    <div class="sort-control">
+                        <label for="sortOption">🔄 Ordenar por:</label>
+                        <select id="sortOption" onchange="updateTable()">
+                            <option value="proveedor">Proveedor (A-Z)</option>
+                            <option value="compra_desc">Total Compra (Mayor)</option>
+                            <option value="compra_asc">Total Compra (Menor)</option>
+                            <option value="pago_desc">Total Pago (Mayor)</option>
+                            <option value="diferencia_desc">Diferencia (Mayor)</option>
+                            <option value="diferencia_asc">Diferencia (Menor)</option>
+                        </select>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Proveedor</th>
+                            <th class="text-right">Total Compra</th>
+                            <th class="text-right">Total Pago</th>
+                            <th class="text-right">Diferencia</th>
+                            <th class="text-right">% Pagado</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+
+            
+            <div style="margin-top: 1.5rem;">
+                <div class="table-card">
+                    <div class="chart-container">
+                        <canvas id="chartProveedores"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURACIÓN
+        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQMd7oOMFdMuEWG5nvflNSptgLu1paKr5znNdaqCqoM8svH2weVz4-Zgyo8twnIUTrnjF7lvuap8x0t/pub?output=csv';
+        
+        let rawData = [];
+        let processedData = [];
+        let filteredData = [];
+        let chartProveedores = null;
+        
+        // Almacena los filtros de diferencia activos
+        let activeDiffFilters = new Set(['all']);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+        });
+
+        // --- CARGA DE DATOS ---
+        async function loadData() {
+            try {
+                console.log('Iniciando carga de datos...');
+                let csvText = '';
+
+                try {
+                    const directResponse = await fetch(SHEET_URL);
+                    if(directResponse.ok) {
+                        csvText = await directResponse.text();
+                        console.log('Conexión directa exitosa.');
+                    } else {
+                        throw new Error('Fallo en fetch directo');
+                    }
+                } catch (e) {
+                    console.log('Usando Proxy CORS...');
+                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(SHEET_URL)}`;
+                    const response = await fetch(proxyUrl);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const json = await response.json();
+                    csvText = json.contents;
+                }
+
+                Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    transformHeader: header => header.trim().toUpperCase(),
+                    complete: function(results) {
+                        if (!results.data || results.data.length === 0) {
+                            throw new Error('No se recibieron datos del CSV.');
+                        }
+
+                        rawData = results.data;
+                        processedData = processData(rawData);
+                        
+                        if (processedData.length === 0) {
+                            throw new Error('No se pudieron procesar datos válidos.');
+                        }
+
+                        filteredData = [...processedData];
+                        populateFilters();
+                        updateDashboard();
+                        
+                        document.getElementById('loading').style.display = 'none';
+                        document.getElementById('dashboard-content').style.display = 'block';
+                    },
+                    error: function(error) {
+                        showError('Error al leer CSV: ' + error.message);
+                    }
+                });
+            } catch (error) {
+                console.error(error);
+                showError('Error cargando datos: ' + error.message);
+            }
+        }
+
+        function processData(data) {
+            const result = [];
+            data.forEach((row) => {
+                try {
+                    const compra = parseNumber(row['COMPRA']);
+                    const pago = parseNumber(row['PAGO']);
+                    
+                    if (compra === 0 && pago === 0) return;
+
+                    result.push({
+                        fecha: parseDate(row['FECHA']),
+                        proveedor: (row['PROVEEDOR'] || 'SIN PROVEEDOR').trim().toUpperCase(),
+                        tipo: (row['TIPO'] || '').trim(),
+                        docu: (row['DOCU'] || '').trim(),
+                        compra: compra,
+                        pago: pago,
+                        dias: parseInt(row['DIAS'] || 0),
+                        vence: parseDate(row['VENCE']),
+                        tipoPago: (row['TIPO PAGO'] || '').trim(),
+                        tasa: parseNumber(row['TASA']),
+                        bcv: parseNumber(row['BCV']),
+                        bolivares: parseNumber(row['BOLIVARES']),
+                        pagoABCV: parseNumber(row['PAGO A BCV']),
+                        pagoTasa: parseNumber(row['PAGO TASA']),
+                        diferencia: parseNumber(row['DIFERENCIA']),
+                        observaciones: (row['OBSERVACIONES'] || '').trim()
+                    });
+                } catch (error) {
+                    console.warn('Error procesando fila:', error);
+                }
+            });
+            return result;
+        }
+
+        function parseNumber(num) {
+            try {
+                if (!num || num === '') return 0;
+                let clean = num.toString().trim().replace(/[$\s]/g, '');
+                if (clean.includes(',') && clean.includes('.')) {
+                    clean = clean.lastIndexOf(',') > clean.lastIndexOf('.') 
+                        ? clean.replace(/\./g, '').replace(',', '.') 
+                        : clean.replace(/,/g, '');
+                } else if (clean.includes(',')) {
+                    clean = clean.replace(',', '.');
+                }
+                return parseFloat(clean) || 0;
+            } catch { return 0; }
+        }
+
+        function parseDate(dateStr) {
+            try {
+                if (!dateStr || dateStr === '') return null;
+                const str = dateStr.toString().trim();
+                const dmyRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+                const matchDmy = str.match(dmyRegex);
+                if (matchDmy) {
+                    let day = parseInt(matchDmy[1], 10);
+                    let month = parseInt(matchDmy[2], 10);
+                    let year = parseInt(matchDmy[3], 10);
+                    if (year < 2000) return null;
+                    return new Date(year, month - 1, day);
+                }
+                const isoRegex = /^(\d{4})-(\d{2})-(\d{2})/;
+                const matchIso = str.match(isoRegex);
+                if (matchIso) {
+                    return new Date(parseInt(matchIso[1]), parseInt(matchIso[2]) - 1, parseInt(matchIso[3]));
+                }
+                return null;
+            } catch { return null; }
+        }
+
+        function populateFilters() {
+            const proveedores = [...new Set(processedData.map(d => d.proveedor).filter(Boolean))].sort();
+            const tipos = [...new Set(processedData.map(d => d.tipo).filter(Boolean))].sort();
+
+            const fillSelect = (id, items) => {
+                const select = document.getElementById(id);
+                const currentVal = select.value;
+                const firstOption = select.options[0];
+                select.innerHTML = '';
+                select.appendChild(firstOption);
+                items.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item; opt.textContent = item;
+                    select.appendChild(opt);
+                });
+                if(items.includes(currentVal)) select.value = currentVal;
+            };
+
+            fillSelect('filterProveedor', proveedores);
+            fillSelect('filterTipo', tipos);
+        }
+
+        // --- MANEJO DE FILTROS DE DIFERENCIA (MÚLTIPLES) ---
+        function toggleDiffFilter(value, checkbox) {
+            if (value === 'all') {
+                // Si se activa "Todos", desactivar los demás
+                if (checkbox.checked) {
+                    activeDiffFilters = new Set(['all']);
+                    document.querySelectorAll('.diff-checkbox-item input[type="checkbox"]').forEach(cb => {
+                        if (cb.value !== 'all') cb.checked = false;
+                    });
+                } else {
+                    // Si se desactiva "Todos", activar todos los demás
+                    activeDiffFilters = new Set(['positive', 'negative', 'zero']);
+                    document.querySelectorAll('.diff-checkbox-item input[type="checkbox"]').forEach(cb => {
+                        if (cb.value !== 'all') cb.checked = true;
+                    });
+                    checkbox.checked = false;
+                }
+            } else {
+                // Desactivar "Todos" si se selecciona cualquier otro
+                const allCheckbox = document.querySelector('#diff-all input[type="checkbox"]');
+                if (checkbox.checked) {
+                    allCheckbox.checked = false;
+                    activeDiffFilters.delete('all');
+                    activeDiffFilters.add(value);
+                } else {
+                    activeDiffFilters.delete(value);
+                    // Si no queda ningún filtro activo, activar "Todos"
+                    if (activeDiffFilters.size === 0) {
+                        activeDiffFilters = new Set(['all']);
+                        allCheckbox.checked = true;
+                    }
+                }
+            }
+
+            // Actualizar estilos visuales
+            document.querySelectorAll('.diff-checkbox-item').forEach(item => {
+                item.className = 'diff-checkbox-item';
+                const cb = item.querySelector('input[type="checkbox"]');
+                if (cb.checked) {
+                    item.classList.add('active-' + cb.value);
+                }
+            });
+
+            applyFilters();
+        }
+
+        // --- APLICAR FILTROS ---
+        function applyFilters() {
+            const proveedor = document.getElementById('filterProveedor').value;
+            const tipo = document.getElementById('filterTipo').value;
+            const desde = document.getElementById('filterDesde').value;
+            const hasta = document.getElementById('filterHasta').value;
+
+            filteredData = processedData.filter(row => {
+                if (proveedor !== 'all' && row.proveedor !== proveedor) return false;
+                if (tipo !== 'all' && row.tipo !== tipo) return false;
+                
+                if (desde && desde !== '') {
+                    const desdeDate = new Date(desde);
+                    desdeDate.setHours(0,0,0,0);
+                    if (row.fecha && row.fecha < desdeDate) return false;
+                }
+                if (hasta && hasta !== '') {
+                    const hastaDate = new Date(hasta);
+                    hastaDate.setHours(23,59,59,999);
+                    if (row.fecha && row.fecha > hastaDate) return false;
+                }
+                return true;
+            });
+
+            updateDashboard();
+        }
+
+        function clearFilters() {
+            document.getElementById('filterProveedor').value = 'all';
+            document.getElementById('filterTipo').value = 'all';
+            document.getElementById('filterDesde').value = '';
+            document.getElementById('filterHasta').value = '';
+            
+            // Resetear filtros de diferencia
+            activeDiffFilters = new Set(['all']);
+            document.querySelectorAll('.diff-checkbox-item input[type="checkbox"]').forEach(cb => {
+                cb.checked = cb.value === 'all';
+                const item = cb.closest('.diff-checkbox-item');
+                item.className = 'diff-checkbox-item';
+                if (cb.checked) item.classList.add('active-' + cb.value);
+            });
+
+            filteredData = [...processedData];
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            updateKPIs();
+            updateTable();
+            updateChart();
+        }
+
+        // --- KPIs ---
+        function updateKPIs() {
+            const totalCompra = filteredData.reduce((sum, d) => sum + d.compra, 0);
+            const totalPago = filteredData.reduce((sum, d) => sum + d.pago, 0);
+            const diferencia = totalCompra - totalPago;
+            const porcentaje = totalCompra > 0 ? (totalPago / totalCompra) * 100 : 0;
+
+            document.getElementById('kpiTotalCompra').textContent = formatCurrency(totalCompra);
+            document.getElementById('kpiTotalPago').textContent = formatCurrency(totalPago);
+            document.getElementById('kpiDiferencia').textContent = formatCurrency(diferencia);
+            document.getElementById('kpiPorcentaje').textContent = porcentaje.toFixed(1) + '%';
+        }
+
+        // --- TABLA ---
+        function updateTable() {
+            const tbody = document.getElementById('tableBody');
+            const sortOption = document.getElementById('sortOption')?.value || 'proveedor';
+
+            // Agrupar por proveedor
+            const proveedorMap = new Map();
+            filteredData.forEach(d => {
+                if (!proveedorMap.has(d.proveedor)) {
+                    proveedorMap.set(d.proveedor, { compra: 0, pago: 0, count: 0 });
+                }
+                const prov = proveedorMap.get(d.proveedor);
+                prov.compra += d.compra;
+                prov.pago += d.pago;
+                prov.count += 1;
+            });
+
+            // Convertir a array
+            let proveedoresArray = Array.from(proveedorMap.entries()).map(([nombre, datos]) => ({
+                proveedor: nombre,
+                compra: datos.compra,
+                pago: datos.pago,
+                diferencia: datos.compra - datos.pago,
+                count: datos.count,
+                porcentajePago: datos.compra > 0 ? (datos.pago / datos.compra) * 100 : 0
+            }));
+
+            // FILTRO POR DIFERENCIA (MÚLTIPLE)
+            const threshold = 0.01;
+            const hasAll = activeDiffFilters.has('all');
+            
+            if (!hasAll) {
+                proveedoresArray = proveedoresArray.filter(p => {
+                    const diff = p.diferencia;
+                    let matches = false;
+                    if (activeDiffFilters.has('positive') && diff > threshold) matches = true;
+                    if (activeDiffFilters.has('negative') && diff < -threshold) matches = true;
+                    if (activeDiffFilters.has('zero') && Math.abs(diff) <= threshold) matches = true;
+                    return matches;
+                });
+            }
+
+            // Ordenar
+            proveedoresArray.sort((a, b) => {
+                switch(sortOption) {
+                    case 'proveedor': return a.proveedor.localeCompare(b.proveedor, 'es');
+                    case 'compra_desc': return b.compra - a.compra;
+                    case 'compra_asc': return a.compra - b.compra;
+                    case 'pago_desc': return b.pago - a.pago;
+                    case 'diferencia_desc': return b.diferencia - a.diferencia;
+                    case 'diferencia_asc': return a.diferencia - b.diferencia;
+                    default: return 0;
+                }
+            });
+
+            // Actualizar badge de filtro
+            const statusSpan = document.getElementById('filterStatus');
+            if (hasAll) {
+                statusSpan.innerHTML = '<span class="filter-badge">📊 Todos</span>';
+            } else {
+                const labels = [];
+                if (activeDiffFilters.has('positive')) labels.push('🔴 Pendientes');
+                if (activeDiffFilters.has('negative')) labels.push('🟢 Sobrepago');
+                if (activeDiffFilters.has('zero')) labels.push('⚪ Equilibrados');
+                statusSpan.innerHTML = `<span class="filter-badge active">${labels.join(' + ')}</span>`;
+            }
+
+            if (proveedoresArray.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding: 2rem; color: #6b7280;">
+                            No hay proveedores que coincidan con los filtros seleccionados
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Renderizar
+            tbody.innerHTML = proveedoresArray.map(p => {
+                const diff = p.diferencia;
+                let estadoClass = 'status-equilibrado';
+                let estadoText = '⚪ Equilibrado';
+                
+                if (diff > threshold) {
+                    estadoClass = 'status-pendiente';
+                    estadoText = '🔴 Pendiente';
+                } else if (diff < -threshold) {
+                    estadoClass = 'status-sobrepago';
+                    estadoText = '🟢 Sobrepago';
+                }
+
+                return `
+                    <tr>
+                        <td>
+                            <strong>${p.proveedor}</strong>
+                            <br><span style="font-size:0.65rem; color:#6b7280;">${p.count} registros</span>
+                        </td>
+                        <td class="text-right font-mono">${formatCurrency(p.compra)}</td>
+                        <td class="text-right font-mono">${formatCurrency(p.pago)}</td>
+                        <td class="text-right font-mono" style="color: ${diff > threshold ? '#dc2626' : diff < -threshold ? '#059669' : '#6b7280'}; font-weight: 700;">
+                            ${formatCurrency(diff)}
+                        </td>
+                        <td class="text-right">${p.porcentajePago.toFixed(1)}%</td>
+                        <td><span class="status-tag ${estadoClass}">${estadoText}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // --- GRÁFICO ---
+        function updateChart() {
+            const ctx = document.getElementById('chartProveedores').getContext('2d');
+            if (chartProveedores) chartProveedores.destroy();
+
+            const proveedorMap = new Map();
+            filteredData.forEach(d => {
+                if (!proveedorMap.has(d.proveedor)) {
+                    proveedorMap.set(d.proveedor, { compra: 0, pago: 0 });
+                }
+                const prov = proveedorMap.get(d.proveedor);
+                prov.compra += d.compra;
+                prov.pago += d.pago;
+            });
+
+            // Aplicar mismo filtro de diferencia al gráfico
+            const threshold = 0.01;
+            const hasAll = activeDiffFilters.has('all');
+            let entries = Array.from(proveedorMap.entries());
+            
+            if (!hasAll) {
+                entries = entries.filter(([_, datos]) => {
+                    const diff = datos.compra - datos.pago;
+                    let matches = false;
+                    if (activeDiffFilters.has('positive') && diff > threshold) matches = true;
+                    if (activeDiffFilters.has('negative') && diff < -threshold) matches = true;
+                    if (activeDiffFilters.has('zero') && Math.abs(diff) <= threshold) matches = true;
+                    return matches;
+                });
+            }
+
+            const sortedProveedores = entries.sort((a, b) => b[1].compra - a[1].compra);
+            const topProveedores = sortedProveedores.slice(0, 8);
+            const otros = sortedProveedores.slice(8);
+            
+            let labels = topProveedores.map(([nombre]) => nombre);
+            let compraData = topProveedores.map(([, datos]) => datos.compra);
+            let pagoData = topProveedores.map(([, datos]) => datos.pago);
+
+            if (otros.length > 0) {
+                const otrosCompra = otros.reduce((sum, [, datos]) => sum + datos.compra, 0);
+                const otrosPago = otros.reduce((sum, [, datos]) => sum + datos.pago, 0);
+                labels.push('Otros');
+                compraData.push(otrosCompra);
+                pagoData.push(otrosPago);
+            }
+
+            if (labels.length === 0) {
+                chartProveedores = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Sin datos'],
+                        datasets: [
+                            { label: 'Total Compra', data: [0], backgroundColor: '#e5e7eb' },
+                            { label: 'Total Pago', data: [0], backgroundColor: '#e5e7eb' }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
+                });
+                return;
+            }
+
+            const colors = ['#dc2626', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6', '#94a3b8'];
+
+            chartProveedores = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Total Compra',
+                            data: compraData,
+                            backgroundColor: colors.map(c => c + 'CC'),
+                            borderColor: colors,
+                            borderWidth: 2,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Total Pago',
+                            data: pagoData,
+                            backgroundColor: colors.map(c => c + '44'),
+                            borderColor: colors,
+                            borderWidth: 2,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatCurrency(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) { return '$' + value.toLocaleString(); }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('en-US', { 
+                style: 'currency', 
+                currency: 'USD', 
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(num);
+        }
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            const errorDiv = document.getElementById('error-container');
+            errorDiv.innerHTML = `<div class="error-message">${message}</div>`;
+            errorDiv.style.display = 'block';
+        }
+    </script>
