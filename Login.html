@@ -6,68 +6,141 @@
   <title>Repuestos VZLA - Control de Proveedores</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { background-color: #f3f4f6; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
-    :root { --color-primario: #007bff; }
-    .navbar-custom { background: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 0.75rem 1.5rem; }
-    .nav-link-custom { color: #374151; font-weight: 500; font-size: 14px; text-decoration: none; padding: 0.5rem 0.75rem; border-radius: 6px; transition: all 0.2s; }
-    .nav-link-custom.active { color: var(--color-primario) !important; font-weight: 600; }
-    .main-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .table-responsive-box { border: 1px solid #e5e7eb; border-radius: 8px; overflow-x: auto; background: white; }
-    .table-clean th { background-color: #f9fafb; color: #4b5563; font-size: 10.5px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; padding: 10px 12px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
-    .table-clean td { padding: 10px 12px; font-size: 12.5px; color: #1f2937; border-bottom: 1px solid #f3f4f6; vertical-align: middle; white-space: nowrap; }
-    #loader-global { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(255,255,255,0.85); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    :root {
+      --color-primario: #2563eb;
+      --color-fondo: #f8fafc;
+    }
+    body {
+      background-color: var(--color-fondo);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+    .navbar-custom {
+      background: #ffffff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 0.75rem 1.5rem;
+    }
+    .nav-link-custom {
+      color: #374151;
+      font-weight: 500;
+      font-size: 14px;
+      text-decoration: none;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .nav-link-custom:hover {
+      background-color: #f3f4f6;
+      color: var(--color-primario);
+    }
+    .nav-link-custom.active {
+      color: var(--color-primario) !important;
+      font-weight: 600;
+      background-color: #eff6ff;
+    }
+    .main-card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+    }
+    .table-responsive-box {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow-x: auto;
+      background: white;
+    }
+    .table-clean th {
+      background-color: #f9fafb;
+      color: #4b5563;
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 10px 12px;
+      border-bottom: 1px solid #e5e7eb;
+      white-space: nowrap;
+    }
+    .table-clean td {
+      padding: 10px 12px;
+      font-size: 13px;
+      color: #1f2937;
+      border-bottom: 1px solid #f3f4f6;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .fila-proveedor-cabecera {
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .fila-proveedor-cabecera:hover {
+      background-color: #f1f5f9 !important;
+    }
+    .subfila-mes {
+      background-color: #fafbfc;
+    }
+    .subfila-mes.d-none {
+      display: none !important;
+    }
+    #loader-global {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(255,255,255,0.85);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
   </style>
 </head>
 <body>
 
-  <div id="loader-global" class="d-none">
-    <div class="spinner-border text-primary mb-2" role="status"></div>
-    <span class="fw-semibold text-secondary small">Procesando...</span>
+  <div id="loader-global">
+    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+    <h6 class="mt-3 text-secondary fw-semibold">Cargando datos en tiempo real...</h6>
   </div>
 
   <div id="app-container">
-    <div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
-      <div class="card main-card p-4" style="width: 100%; max-width: 400px;">
-        <div class="text-center mb-4">
-          <h4 class="fw-bold text-dark m-0">Repuestos VZLA</h4>
-          <p class="text-muted small">Módulo de Gestión de Proveedores</p>
+    <nav class="navbar navbar-expand-lg navbar-custom mb-4">
+      <div class="container-fluid d-flex justify-content-between align-items-center">
+        <span class="navbar-brand fw-bold text-primary mb-0 h1 fs-5">Proveedores VZLA</span>
+        <div class="d-flex align-items-center gap-3">
+          <div class="nav-tabs-custom d-flex gap-2">
+            <span id="tab-form" class="nav-link-custom active" onclick="cambiarModulo('Formulario')">Carga de Cuentas</span>
+            <span id="tab-detail" class="nav-link-custom" onclick="cambiarModulo('Detail')">Reporte Proveedores</span>
+            <span id="tab-conc" class="nav-link-custom" onclick="cambiarModulo('Conciliacion')">Conciliación Mensual</span>
+          </div>
         </div>
-        <div id="login-alert" class="alert alert-danger d-none small p-2 text-center" role="alert"></div>
-        <form onsubmit="procesarLogin(event)">
-          <div class="mb-3">
-            <label class="form-label small fw-semibold text-secondary">Usuario</label>
-            <input type="text" id="log-user" class="form-control" required>
-          </div>
-          <div class="mb-4">
-            <label class="form-label small fw-semibold text-secondary">Contraseña</label>
-            <input type="password" id="log-pass" class="form-control" required>
-          </div>
-          <button type="submit" class="btn btn-primary w-100 fw-semibold">Ingresar al Sistema</button>
-        </form>
+        <span class="badge bg-success-subtle text-success border">Acceso Directo</span>
       </div>
+    </nav>
+    <div class="container mb-5">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 id="lbl-modulo" class="fw-bold text-dark text-uppercase mb-0">REGISTRO DE CUENTAS</h5>
+      </div>
+      <div id="modulo-dinamico"></div>
     </div>
   </div>
 
-  <div class="modal fade" id="modalEditar" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+  <div class="modal fade" id="modalEditar" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content main-card">
-        <div class="modal-header bg-light border-bottom p-3">
-          <h6 class="modal-title fw-bold text-dark" id="modalEditarLabel">Editar Registro Operativo</h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
+      <div class="modal-content">
         <form onsubmit="procesarGuardadoEdicion(event)">
-          <div class="modal-body p-4">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold">Modificar Operación</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
             <input type="hidden" id="edit-rowNum">
-            <div class="row">
-              <div class="col-md-4 mb-3">
+            <div class="row g-3">
+              <div class="col-md-4">
                 <label class="form-label small fw-semibold">FECHA</label>
                 <input type="date" id="edit-fecha" class="form-control" required>
               </div>
-              <div class="col-md-4 mb-3">
+              <div class="col-md-4">
                 <label class="form-label small fw-semibold">PROVEEDOR</label>
                 <select id="edit-proveedor" class="form-select" required></select>
               </div>
-              <div class="col-md-4 mb-3">
+              <div class="col-md-4">
                 <label class="form-label small fw-semibold">TIPO</label>
                 <select id="edit-tipo" class="form-select" required>
                   <option value="COMPRA">COMPRA</option>
@@ -75,43 +148,43 @@
                   <option value="CONTADO">CONTADO</option>
                 </select>
               </div>
-              <div class="col-md-4 mb-3">
-                <label class="form-label small fw-semibold">DOCUMENTO (DOCU)</label>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold">DOCUMENTO</label>
                 <input type="text" id="edit-docu" class="form-control">
               </div>
-              <div class="col-md-4 mb-3">
+              <div class="col-md-4">
                 <label class="form-label small fw-semibold">COMPRA ($)</label>
-                <input type="number" step="any" id="edit-compra" class="form-control">
+                <input type="number" id="edit-compra" step="0.01" class="form-control">
               </div>
-              <div class="col-md-4 mb-3">
+              <div class="col-md-4">
                 <label class="form-label small fw-semibold">PAGO ($)</label>
-                <input type="number" step="any" id="edit-pago" class="form-control">
+                <input type="number" id="edit-pago" step="0.01" class="form-control">
               </div>
-              <div class="col-md-3 mb-3">
+              <div class="col-md-4">
                 <label class="form-label small fw-semibold">DÍAS CRÉDITO</label>
                 <input type="number" id="edit-dias" class="form-control">
               </div>
-              <div class="col-md-3 mb-3">
-                <label class="form-label small fw-semibold text-info">TASA DE CAMBIO</label>
-                <input type="number" step="any" id="edit-tasa" class="form-control fw-bold" required>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold">TASA</label>
+                <input type="number" id="edit-tasa" step="0.01" class="form-control">
               </div>
-              <div class="col-md-3 mb-3">
-                <label class="form-label small fw-semibold text-success">BCV REFERENCIA</label>
-                <input type="number" step="any" id="edit-bcv" class="form-control fw-bold" required>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold">BCV</label>
+                <input type="number" id="edit-bcv" step="0.01" class="form-control">
               </div>
-              <div class="col-md-3 mb-3">
+              <div class="col-md-6">
                 <label class="form-label small fw-semibold">TIPO PAGO</label>
                 <select id="edit-subpago" class="form-select"></select>
               </div>
-              <div class="col-md-12 mb-3">
+              <div class="col-md-6">
                 <label class="form-label small fw-semibold">OBSERVACIONES</label>
-                <textarea id="edit-observacion" class="form-control" rows="2"></textarea>
+                <input type="text" id="edit-observacion" class="form-control">
               </div>
             </div>
           </div>
-          <div class="modal-footer bg-light border-top p-3">
-            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-            <button type="submit" class="btn btn-sm btn-primary px-3 fw-semibold">Guardar Cambios</button>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary px-4">Guardar</button>
           </div>
         </form>
       </div>
@@ -119,99 +192,68 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
   <script>
-    let sessionUser = "";
-    let sessionPermiso = "";
     let catalogosForm = { proveedores: [], tasa: 0, bcv: 0, tiposPago: [] };
-    let cacheProveedoresTabla = [];
+    let cacheProveedoresTabla = null;
     let bootstrapModalInstancia = null;
+
+    function formatearNumero(val, decimals = 2) {
+      if (val === null || val === undefined || isNaN(val)) return "0,00";
+      return val.toLocaleString('es-VE', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+      });
+    }
+
+    window.addEventListener('load', function() {
+      bootstrapModalInstancia = new bootstrap.Modal(document.getElementById('modalEditar'));
+      
+      google.script.run.withSuccessHandler(function(listas) {
+        catalogosForm = listas;
+        google.script.run.withSuccessHandler(function(datos) {
+          cacheProveedoresTabla = datos;
+          cambiarModulo('Formulario');
+        }).obtenerDatosProveedoresBackend();
+      }).obtenerListasFormularioBackend();
+    });
 
     function toggleLoader(ver) {
       const loader = document.getElementById('loader-global');
-      if(loader) {
-        if(ver) loader.classList.remove('d-none');
+      if (loader) {
+        if (ver) loader.classList.remove('d-none');
         else loader.classList.add('d-none');
       }
-    }
-
-    function procesarLogin(e) {
-      e.preventDefault();
-      toggleLoader(true);
-      const u = document.getElementById('log-user').value;
-      const p = document.getElementById('log-pass').value;
-      const alertBox = document.getElementById('login-alert');
-
-      google.script.run.withSuccessHandler(function(res) {
-        if(res.success) {
-          sessionUser = res.usuario;
-          sessionPermiso = res.permiso;
-          google.script.run.withSuccessHandler(function(listas) {
-            catalogosForm = listas;
-            bootstrapModalInstancia = new bootstrap.Modal(document.getElementById('modalEditar'));
-            construirEsqueleto();
-          }).obtenerListasFormularioBackend();
-        } else {
-          alertBox.textContent = res.message;
-          alertBox.classList.remove('d-none');
-          toggleLoader(false);
-        }
-      }).iniciarSesion(u, p);
-    }
-
-    function construirEsqueleto() {
-      let menuTabs = `
-        <a href="#" class="nav-link-custom me-2" id="tab-form" onclick="cambiarModulo('Formulario')">Carga de Cuentas</a>
-        <a href="#" class="nav-link-custom" id="tab-detail" onclick="cambiarModulo('Detail')">Reporte Proveedores</a>
-      `;
-
-      document.getElementById('app-container').innerHTML = `
-        <nav class="navbar navbar-custom sticky-top">
-          <div class="container-fluid d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center">
-              <span class="navbar-brand fw-bold text-dark fs-5 me-4">Proveedores VZLA</span>
-              <div class="d-flex">${menuTabs}</div>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-              <span class="badge bg-light text-dark border p-2 small">${sessionUser}</span>
-              <span class="badge bg-dark text-white border p-2 small">${sessionPermiso}</span>
-              <button class="btn btn-sm btn-outline-danger" onclick="location.reload()">⚠️ Salir</button>
-            </div>
-          </div>
-        </nav>
-        <div class="container-fluid py-4">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold m-0 text-secondary" id="lbl-modulo">Cargando...</h5>
-            <span class="badge bg-info-subtle text-info border">En Vivo (CSV)</span>
-          </div>
-          <div id="modulo-dinamico"></div>
-        </div>
-      `;
-      cambiarModulo('Formulario');
     }
 
     function cambiarModulo(destino) {
       const area = document.getElementById('modulo-dinamico');
       const lbl = document.getElementById('lbl-modulo');
       if(!area) return;
-      toggleLoader(true);
 
       document.querySelectorAll('.nav-link-custom').forEach(el => el.classList.remove('active'));
 
       if (destino === 'Formulario') {
         document.getElementById('tab-form').classList.add('active');
-        lbl.textContent = "REGISTRO DE CUENTAS / COMPRAS Y PAGOS";
+        lbl.textContent = "REGISTRO DE CUENTAS";
         area.innerHTML = generarTemplateFormularioProveedores();
         toggleLoader(false);
-      } 
+      }
       else if (destino === 'Detail') {
         document.getElementById('tab-detail').classList.add('active');
-        lbl.textContent = "HISTÓRICO Y REPORTES DETALLADOS";
-        google.script.run.withSuccessHandler(function(datosCsv) {
-          cacheProveedoresTabla = datosCsv;
-          area.innerHTML = generarEstructuraTablaConFiltros();
-          filtrarTablaProveedores(); // Llama directamente al filtro que incluye el nuevo motor de ordenamiento
-          toggleLoader(false);
-        }).obtenerDatosProveedoresBackend(sessionUser, sessionPermiso);
+        lbl.textContent = "REPORTE PROVEEDORES";
+        area.innerHTML = generarEstructuraTablaConFiltros();
+        if(cacheProveedoresTabla) {
+          inyectarFilasProveedores(cacheProveedoresTabla);
+        }
+      }
+      else if (destino === 'Conciliacion') {
+        document.getElementById('tab-conc').classList.add('active');
+        lbl.textContent = "CONCILIACIÓN MENSUAL";
+        area.innerHTML = generarEstructuraConciliacion();
+        if(cacheProveedoresTabla) {
+          filtrarYCalcularConciliacion();
+        }
       }
     }
 
@@ -222,62 +264,63 @@
       let opcionesPago = `<option value="" disabled selected>-- Seleccione Tipo Pago --</option>`;
       catalogosForm.tiposPago.forEach(tp => opcionesPago += `<option value="${tp}">${tp}</option>`);
 
+      const hoy = new Date().toISOString().split('T')[0];
+
       return `
         <div class="card main-card p-4">
-          <h6 class="fw-bold mb-4 text-dark">Formulario de Carga Operativa</h6>
           <form onsubmit="enviarDataProveedor(event)">
-            <div class="row">
-              <div class="col-md-3 mb-3">
-                <label class="form-label small fw-semibold text-secondary">FECHA</label>
-                <input type="date" id="p-fecha" class="form-control" required>
+            <div class="row g-3 mb-4">
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">FECHA</label>
+                <input type="date" id="p-fecha" class="form-control" value="${hoy}" required>
               </div>
-              <div class="col-md-5 mb-3">
-                <label class="form-label small fw-semibold text-secondary">PROVEEDOR</label>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">PROVEEDOR</label>
                 <select id="p-proveedor" class="form-select" required>${opcionesProv}</select>
               </div>
-              <div class="col-md-4 mb-3">
-                <label class="form-label small fw-semibold text-secondary">TIPO (COMPRA/PAGO/CONTADO)</label>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">TIPO</label>
                 <select id="p-tipo" class="form-select" required>
                   <option value="COMPRA">COMPRA</option>
                   <option value="PAGO">PAGO</option>
                   <option value="CONTADO">CONTADO</option>
                 </select>
               </div>
-              <div class="col-md-4 mb-3">
-                <label class="form-label small fw-semibold text-secondary">DOCUMENTO (DOCU)</label>
-                <input type="text" id="p-docu" class="form-control" placeholder="N° Factura o Control">
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">DOCUMENTO</label>
+                <input type="text" id="p-docu" class="form-control" placeholder="Ej: Factura">
               </div>
-              <div class="col-md-3 mb-3">
-                <label class="form-label small fw-semibold text-secondary">MONTO COMPRA ($)</label>
-                <input type="number" step="any" id="p-compra" class="form-control" value="0.00" required>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">COMPRA ($)</label>
+                <input type="number" id="p-compra" step="0.01" class="form-control" value="0.00" required>
               </div>
-              <div class="col-md-3 mb-3">
-                <label class="form-label small fw-semibold text-secondary">MONTO PAGO ($)</label>
-                <input type="number" step="any" id="p-pago" class="form-control" value="0.00" required>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">PAGO ($)</label>
+                <input type="number" id="p-pago" step="0.01" class="form-control" value="0.00" required>
               </div>
-              <div class="col-md-2 mb-3">
-                <label class="form-label small fw-semibold text-secondary">DIAS CREDITO</label>
-                <input type="number" id="p-dias" class="form-control" value="0" required>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">DÍAS CRÉDITO</label>
+                <input type="number" id="p-dias" class="form-control" value="0">
               </div>
-              <div class="col-md-3 mb-3">
-                <label class="form-label text-info fw-bold small">TASA DE CAMBIO</label>
-                <input type="number" step="any" id="p-tasa" class="form-control fw-bold" value="${catalogosForm.tasa}" required>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">TASA</label>
+                <input type="number" id="p-tasa" step="0.01" class="form-control" value="${catalogosForm.tasa || '0.00'}" required>
               </div>
-              <div class="col-md-3 mb-3">
-                <label class="form-label text-success fw-bold small">BCV REFERENCIA</label>
-                <input type="number" step="any" id="p-bcv" class="form-control fw-bold" value="${catalogosForm.bcv}" required>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">BCV REFERENCIA</label>
+                <input type="number" id="p-bcv" step="0.01" class="form-control" value="${catalogosForm.bcv || '0.00'}" required>
               </div>
-              <div class="col-md-3 mb-3">
-                <label class="form-label small fw-semibold text-secondary">TIPO PAGO</label>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold">TIPO PAGO</label>
                 <select id="p-subpago" class="form-select">${opcionesPago}</select>
               </div>
-              <div class="col-md-3 mb-3">
-                <label class="form-label small fw-semibold text-secondary">OBSERVACIONES</label>
-                <input type="text" id="p-observacion" class="form-control" placeholder="Detalles extra...">
+              <div class="col-md-5">
+                <label class="form-label small fw-semibold">OBSERVACIONES</label>
+                <input type="text" id="p-observacion" class="form-control">
               </div>
             </div>
-            <div class="text-end mt-3">
-              <button type="submit" class="btn btn-primary px-4 fw-semibold">Procesar Operación de Proveedor</button>
+            <div class="text-end">
+              <button type="submit" class="btn btn-primary px-4 py-2">Procesar Operación</button>
             </div>
           </form>
         </div>
@@ -291,32 +334,36 @@
       return `
         <div class="card main-card p-3 mb-4">
           <div class="row g-2">
-            <div class="col-md-4">
-              <label class="form-label small fw-semibold text-muted mb-1">Filtrar por Proveedor</label>
-              <select id="search-prov-select" class="form-select form-select-sm" onchange="filtrarTablaProveedores()">${opcionesProv}</select>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Proveedor</label>
+              <select id="search-prov-select" class="form-select" onchange="filtrarTablaProveedores()">${opcionesProv}</select>
             </div>
             <div class="col-md-2">
-              <label class="form-label small fw-semibold text-muted mb-1">Desde Fecha</label>
-              <input type="date" id="search-fecha-desde" class="form-control form-control-sm" onchange="filtrarTablaProveedores()">
+              <label class="form-label small fw-semibold">Desde</label>
+              <input type="date" id="search-fecha-desde" class="form-control" onchange="filtrarTablaProveedores()">
             </div>
             <div class="col-md-2">
-              <label class="form-label small fw-semibold text-muted mb-1">Hasta Fecha</label>
-              <input type="date" id="search-fecha-hasta" class="form-control form-control-sm" onchange="filtrarTablaProveedores()">
+              <label class="form-label small fw-semibold">Hasta</label>
+              <input type="date" id="search-fecha-hasta" class="form-control" onchange="filtrarTablaProveedores()">
             </div>
-            <div class="col-md-4">
-              <label class="form-label small fw-semibold text-muted mb-1">Búsqueda de Documento</label>
-              <input type="text" id="search-docu-text" class="form-control form-control-sm" placeholder="Buscar..." onkeyup="filtrarTablaProveedores()">
+            <div class="col-md-5">
+              <label class="form-label small fw-semibold">Búsqueda rápida</label>
+              <input type="text" id="search-docu-text" class="form-control" placeholder="Buscar..." onkeyup="filtrarTablaProveedores()">
             </div>
           </div>
         </div>
         <div class="table-responsive-box">
-          <table class="table table-clean table-hover m-0">
+          <table class="table table-clean table-hover mb-0">
             <thead>
               <tr>
-                ${sessionPermiso === "TOTAL" ? '<th class="text-center bg-light">Acciones</th>' : ''}
-                <th>Fecha</th><th>Proveedor</th><th>Tipo</th><th>Docu</th><th>Compra ($)</th>
-                <th>Pago ($)</th><th>Días</th><th>Vence</th><th>Tipo Pago</th><th>Tasa</th>
-                <th>BCV</th><th>Bolívares</th><th>Pago BCV</th><th>Pago Tasa</th><th>Diferencia</th><th>Observación</th>
+                <th class="text-center" style="width: 80px;">Acciones</th>
+                <th>Fecha</th><th>Proveedor</th><th>Tipo</th><th>Docu</th>
+                <th class="text-end">Compra ($)</th><th class="text-end">Pago ($)</th>
+                <th>Días</th><th>Vence</th><th>Tipo Pago</th>
+                <th class="text-end">Tasa</th><th class="text-end">BCV</th>
+                <th class="text-end">Bolívares</th><th class="text-end">Pago BCV</th>
+                <th class="text-end">Pago Tasa</th><th class="text-end">Diferencia</th>
+                <th>Observaciones</th>
               </tr>
             </thead>
             <tbody id="tbody-proveedores"></tbody>
@@ -328,163 +375,244 @@
     function inyectarFilasProveedores(filas) {
       const contenedor = document.getElementById('tbody-proveedores');
       if(!contenedor) return;
-
-      if(filas.length === 0) {
-        let cols = sessionPermiso === "TOTAL" ? 17 : 16;
-        contenedor.innerHTML = `<tr><td colspan="${cols}" class="text-center text-muted p-4">Ningún registro coincide.</td></tr>`;
-        return;
-      }
-
       let html = "";
       filas.forEach(function(item) {
-        let badgeTipo = "bg-secondary text-white";
-        if(item.tipo === "COMPRA") badgeTipo = "bg-warning-subtle text-warning border";
-        else if(item.tipo === "PAGO") badgeTipo = "bg-success-subtle text-success border";
-        else if(item.tipo === "CONTADO") badgeTipo = "bg-info-subtle text-info border";
-
+        let badge = item.tipo === "COMPRA" ? "bg-warning-subtle text-warning border" : (item.tipo === "PAGO" ? "bg-success-subtle text-success border" : "bg-info-subtle text-info border");
         let colorDif = item.diferencia < 0 ? "text-danger" : (item.diferencia > 0 ? "text-success" : "text-muted");
+        let fM = item.fecha && item.fecha.includes('-') ? item.fecha.split('-').reverse().join('/') : item.fecha;
+        let vM = item.vence && item.vence.includes('-') ? item.vence.split('-').reverse().join('/') : item.vence;
 
         html += `
           <tr>
-            ${sessionPermiso === "TOTAL" ? `
-              <td class="text-center bg-light">
-                <button class="btn btn-sm btn-light p-1 border" onclick="abrirModalEdicion(${item.rowNum})">✏️</button>
-                <button class="btn btn-sm btn-light p-1 text-danger border" onclick="solicitarEliminacion(${item.rowNum})">🗑️</button>
-              </td>
-            ` : ''}
-            <td>${item.fecha}</td>
-            <td class="fw-semibold">${item.proveedor}</td>
-            <td><span class="badge ${badgeTipo} px-2 py-1 small">${item.tipo}</span></td>
+            <td class="text-center bg-light">
+              <button class="btn btn-sm btn-light p-1 border" onclick="abrirModalEdicion(${item.rowNum})">✏️</button>
+              <button class="btn btn-sm btn-light p-1 text-danger border" onclick="solicitarEliminacion(${item.rowNum})">🗑️</button>
+            </td>
+            <td>${fM}</td>
+            <td class="fw-semibold text-dark text-uppercase">${item.proveedor}</td>
+            <td><span class="badge ${badge} px-2 py-1 small">${item.tipo}</span></td>
             <td>${item.docu}</td>
-            <td class="fw-semibold">${item.compra.toFixed(2)}</td>
-            <td class="fw-semibold text-success">${item.pago.toFixed(2)}</td>
-            <td>${item.dias}</td>
-            <td>${item.vence}</td>
-            <td>${item.tipoPago}</td>
-            <td>${item.tasa.toFixed(2)}</td>
-            <td>${item.bcv.toFixed(2)}</td>
-            <td>${item.bolivares.toFixed(2)}</td>
-            <td>${item.pagoBcv.toFixed(2)}</td>
-            <td>${item.pagoTasa.toFixed(2)}</td>
-            <td class="${colorDif} fw-bold">${item.diferencia.toFixed(2)}</td>
+            <td class="text-end fw-semibold">${formatearNumero(item.compra)}</td>
+            <td class="text-end fw-semibold text-success">${formatearNumero(item.pago)}</td>
+            <td>${item.dias}</td><td>${vM}</td><td>${item.tipoPago}</td>
+            <td class="text-end">${formatearNumero(item.tasa)}</td><td class="text-end">${formatearNumero(item.bcv)}</td>
+            <td class="text-end">${formatearNumero(item.bolivares)}</td><td class="text-end">${formatearNumero(item.pagoBcv)}</td>
+            <td class="text-end">${formatearNumero(item.pagoTasa)}</td><td class="text-end ${colorDif} fw-bold">${formatearNumero(item.diferencia)}</td>
             <td class="text-muted small">${item.observacion}</td>
           </tr>
         `;
       });
-      contenedor.innerHTML = html;
+      contenedor.innerHTML = html || '<tr><td colspan="17" class="text-center p-3 text-muted">Sin registros.</td></tr>';
     }
 
     function filtrarTablaProveedores() {
-      const provSel = document.getElementById('search-prov-select').value;
+      if(!cacheProveedoresTabla) return;
+      const provSel = document.getElementById('search-prov-select').value.toLowerCase().trim();
       const fDesde = document.getElementById('search-fecha-desde').value;
       const fHasta = document.getElementById('search-fecha-hasta').value;
       const txtDocu = document.getElementById('search-docu-text').value.toLowerCase().trim();
 
-      // Helper para convertir "DD/MM/AAAA" a un objeto numérico Date ordenable
-      function obtenerTiempoFecha(strFecha) {
-        if (!strFecha) return 0;
-        let partes = strFecha.split('/');
-        if (partes.length !== 3) return 0;
-        return new Date(partes[2], partes[1] - 1, partes[0]).getTime();
-      }
-
-      // 1. Filtrar registros según los criterios del usuario
       let filtrados = cacheProveedoresTabla.filter(function(p) {
-        if (provSel && p.proveedor !== provSel) return false;
-        let partes = p.fecha.split('/');
-        let fechaIsoFila = partes.length === 3 ? `${partes[2]}-${partes[1]}-${partes[0]}` : "";
-        if (fDesde && fechaIsoFila && fechaIsoFila < fDesde) return false;
-        if (fHasta && fechaIsoFila && fechaIsoFila > fHasta) return false;
-        if (txtDocu) {
-          let matchDoc = p.docu.toLowerCase().includes(txtDocu);
-          let matchTipo = p.tipo.toLowerCase().includes(txtDocu);
-          let matchTP = p.tipoPago && p.tipoPago.toLowerCase().includes(txtDocu);
-          if(!matchDoc && !matchTipo && !matchTP) return false;
-        }
+        let pProv = p.proveedor.toLowerCase().trim();
+        if (provSel && pProv !== provSel) return false;
+        if (fDesde && p.fecha && p.fecha < fDesde) return false;
+        if (fHasta && p.fecha && p.fecha > fHasta) return false;
+        if (txtDocu && !p.docu.toLowerCase().includes(txtDocu) && !pProv.includes(txtDocu)) return false;
         return true;
       });
+      inyectarFilasProveedores(filtrados);
+    }
 
-      // 2. Aplicar orden cronológico descendente (De más reciente a más antigua)
-      filtrados.sort(function(a, b) {
-        return obtenerTiempoFecha(b.fecha) - obtenerTiempoFecha(a.fecha);
+    function generarEstructuraConciliacion() {
+      let opcionesProv = `<option value="">[Filtrar Proveedor]</option>`;
+      catalogosForm.proveedores.forEach(p => opcionesProv += `<option value="${p}">${p}</option>`);
+
+      return `
+        <div class="row g-3 mb-4">
+          <div class="col-md-3"><div class="card p-3 border shadow-sm"><span class="text-muted small text-uppercase fw-bold">Total Compras</span><h4 id="kpi-compras" class="fw-bold text-dark mt-1">$0,00</h4></div></div>
+          <div class="col-md-3"><div class="card p-3 border shadow-sm"><span class="text-muted small text-uppercase fw-bold">Total Pagos</span><h4 id="kpi-pagos" class="fw-bold text-success mt-1">$0,00</h4></div></div>
+          <div class="col-md-3"><div class="card p-3 border shadow-sm"><span class="text-muted small text-uppercase fw-bold">Saldo Pendiente</span><h4 id="kpi-pendiente" class="fw-bold text-danger mt-1">$0,00</h4></div></div>
+          <div class="col-md-3"><div class="card p-3 border shadow-sm"><span class="text-muted small text-uppercase fw-bold">% Cobertura</span><h4 id="kpi-cobertura" class="fw-bold text-primary mt-1">0,0%</h4></div></div>
+        </div>
+        <div class="card main-card p-3 mb-4">
+          <div class="row g-2">
+            <div class="col-md-4"><select id="conc-prov-select" class="form-select" onchange="filtrarYCalcularConciliacion()">${opcionesProv}</select></div>
+            <div class="col-md-8"><input type="text" id="conc-buscar-text" class="form-control" placeholder="Buscar..." onkeyup="filtrarYCalcularConciliacion()"></div>
+          </div>
+        </div>
+        <div class="table-responsive-box">
+          <table class="table table-clean table-hover mb-0">
+            <thead>
+              <tr><th style="width: 50px;"></th><th>Proveedor / Período Mensual</th><th class="text-end">Total Compras ($)</th><th class="text-end">Total Pagado ($)</th><th class="text-end">Balance Pendiente ($)</th><th class="text-center" style="width: 150px;">Estatus</th></tr>
+            </thead>
+            <tbody id="tbody-conciliacion"></tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // NORMALIZADOR INTELIGENTE MULTIFORMATO DE FECHAS
+    function normalizarClaveMes(strFecha) {
+      if (!strFecha) return null;
+      
+      try {
+        let d = new Date(strFecha);
+        if (!isNaN(d.getTime())) {
+          let anio = d.getFullYear();
+          let mes = String(d.getMonth() + 1).padStart(2, '0');
+          return `${anio}-${mes}`;
+        }
+        
+        let limpia = strFecha.toString().trim();
+        if (limpia.includes('-')) {
+          let partes = limpia.split('-');
+          if (partes[0].length === 4) {
+            return `${partes[0]}-${partes[1].padStart(2, '0')}`;
+          } else if (partes[2].substring(0,4).length === 4) {
+            return `${partes[2].substring(0,4)}-${partes[1].padStart(2, '0')}`;
+          }
+        } 
+        else if (limpia.includes('/')) {
+          let partes = limpia.split('/');
+          if (partes[2].substring(0,4).length === 4) {
+            return `${partes[2].substring(0,4)}-${partes[1].padStart(2, '0')}`;
+          } else if (partes[0].length === 4) {
+            return `${partes[0]}-${partes[1].padStart(2, '0')}`;
+          }
+        }
+      } catch (e) {
+        console.error("Error parseando fecha:", strFecha, e);
+      }
+      return null;
+    }
+
+    function filtrarYCalcularConciliacion() {
+      if(!cacheProveedoresTabla) return;
+      const proveedorSeleccionado = document.getElementById('conc-prov-select').value.toLowerCase().trim();
+      const textoBuscar = document.getElementById('conc-buscar-text').value.toLowerCase().trim();
+
+      const mesesNombres = {"01":"Enero","02":"Febrero","03":"Marzo","04":"Abril","05":"Mayo","06":"Junio","07":"Julio","08":"Agosto","09":"Septiembre","10":"Octubre","11":"Noviembre","12":"Diciembre"};
+      let balances = {};
+
+      cacheProveedoresTabla.forEach(row => {
+        let claveMes = normalizarClaveMes(row.fecha);
+        if (!claveMes) return;
+
+        let provOriginal = row.proveedor;
+        let provMin = provOriginal.toLowerCase().trim();
+        
+        if (proveedorSeleccionado && provMin !== proveedorSeleccionado) return;
+        if (textoBuscar && !provMin.includes(textoBuscar)) return;
+
+        if (!balances[provOriginal]) balances[provOriginal] = { compra: 0, pago: 0, meses: {} };
+        if (!balances[provOriginal].meses[claveMes]) balances[provOriginal].meses[claveMes] = { compra: 0, pago: 0 };
+
+        // SOLUCIÓN MATEMÁTICA PURA: Sumar si existen valores en las columnas respectivas, sin importar "tipo"
+        let valorCompra = parseFloat(row.compra) || 0;
+        let valorPago = parseFloat(row.pago) || 0;
+
+        balances[provOriginal].compra += valorCompra;
+        balances[provOriginal].pago += valorPago;
+
+        balances[provOriginal].meses[claveMes].compra += valorCompra;
+        balances[provOriginal].meses[claveMes].pago += valorPago;
       });
 
-      // 3. Inyectar filas en la tabla limpia
-      inyectarFilasProveedores(filtrados);
+      let tc = 0, tp = 0;
+      for (let p in balances) { tc += balances[p].compra; tp += balances[p].pago; }
+      document.getElementById('kpi-compras').textContent = `$${formatearNumero(tc)}`;
+      document.getElementById('kpi-pagos').textContent = `$${formatearNumero(tp)}`;
+      document.getElementById('kpi-pendiente').textContent = `$${formatearNumero(tc - tp)}`;
+      document.getElementById('kpi-cobertura').textContent = `${formatearNumero(tc > 0 ? (tp / tc) * 100 : 100, 1)}%`;
+
+      const tbody = document.getElementById('tbody-conciliacion');
+      let html = "";
+      Object.keys(balances).sort().forEach((prov, idx) => {
+        let datos = balances[prov];
+        let pen = datos.compra - datos.pago;
+        let badge = Math.abs(pen) < 0.1 ? `<span class="badge bg-success-subtle text-success border px-2 py-1">🟢 Conciliado</span>` : (pen < 0 ? `<span class="badge bg-info-subtle text-info border px-2 py-1">🟡 A Favor</span>` : `<span class="badge bg-danger-subtle text-danger border px-2 py-1">🔴 Pendiente</span>`);
+        let idSeguro = `prov-row-${idx}`;
+
+        html += `
+          <tr class="fila-proveedor-cabecera" onclick="toggleSubfilas('${idSeguro}')">
+            <td class="text-center text-secondary">➕</td>
+            <td class="fw-bold text-dark text-uppercase">${prov}</td>
+            <td class="text-end fw-bold">$${formatearNumero(datos.compra)}</td>
+            <td class="text-end fw-bold text-success">$${formatearNumero(datos.pago)}</td>
+            <td class="text-end fw-bold ${pen > 0 ? 'text-danger': 'text-primary'}">$${formatearNumero(pen)}</td>
+            <td class="text-center">${badge}</td>
+          </tr>
+        `;
+
+        Object.keys(datos.meses).sort().reverse().forEach(clave => {
+          let dm = datos.meses[clave]; 
+          let pm = dm.compra - dm.pago;
+          let partesClave = clave.split('-');
+          let a = partesClave[0];
+          let m = partesClave[1];
+          let sm = Math.abs(pm) < 0.1 ? `🟢 <span class="text-success small">Al día</span>` : (pm < 0 ? `🟡 <span class="text-info small">Exceso</span>` : `🔴 <span class="text-danger small">Por pagar</span>`);
+
+          html += `
+            <tr class="subfila-mes d-none ${idSeguro}">
+              <td></td><td class="ps-5 text-muted">📅 ${a} - ${mesesNombres[m] || m}</td>
+              <td class="text-end text-muted">$${formatearNumero(dm.compra)}</td>
+              <td class="text-end text-success">$${formatearNumero(dm.pago)}</td>
+              <td class="text-end fw-semibold ${pm > 0 ? 'text-danger':'text-primary'}">$${formatearNumero(pm)}</td>
+              <td class="text-center">${sm}</td>
+            </tr>
+          `;
+        });
+      });
+      tbody.innerHTML = html || '<tr><td colspan="6" class="text-center text-muted p-3">Sin datos.</td></tr>';
+    }
+
+    function toggleSubfilas(idClase) {
+      const elementos = document.getElementsByClassName(idClase);
+      for (let i = 0; i < elementos.length; i++) elementos[i].classList.toggle('d-none');
     }
 
     function calcularEstructuraPayload(fecha, proveedor, tipo, docu, compra, pago, dias, tasa, bcv, tipoPago, obs) {
       let baseFecha = new Date(fecha);
       baseFecha.setMinutes(baseFecha.getMinutes() + baseFecha.getTimezoneOffset());
-      if(!isNaN(dias) && dias > 0) {
-        baseFecha.setDate(baseFecha.getDate() + dias);
-      }
-      const venceString = baseFecha.toISOString().split('T')[0];
-      const bolivares = pago * tasa;
-      const pagoBcv = pago * bcv;
-      const diferencia = bolivares - pagoBcv;
-
+      if(!isNaN(dias) && dias > 0) baseFecha.setDate(baseFecha.getDate() + dias);
       return {
-        fecha: fecha, proveedor: proveedor, tipo: tipo, docu: docu,
-        compra: compra, pago: pago, dias: dias, vence: venceString,
-        tipoPago: tipoPago, tasa: tasa, bcv: bcv, bolivares: bolivares,
-        pagoBcv: pagoBcv, pagoTasa: pago, diferencia: diferencia, observacion: obs
+        fecha: fecha, proveedor: proveedor, tipo: tipo, docu: docu, compra: compra, pago: pago, dias: dias,
+        vence: baseFecha.toISOString().split('T')[0], tipoPago: tipoPago, tasa: tasa, bcv: bcv,
+        bolivares: pago * tasa, pagoBcv: pago * bcv, pagoTasa: pago, diferencia: (pago * tasa) - (pago * bcv), observacion: obs
       };
     }
 
     function enviarDataProveedor(event) {
       event.preventDefault();
       toggleLoader(true);
-
       const payload = calcularEstructuraPayload(
-        document.getElementById('p-fecha').value,
-        document.getElementById('p-proveedor').value,
-        document.getElementById('p-tipo').value,
-        document.getElementById('p-docu').value,
-        parseFloat(document.getElementById('p-compra').value) || 0,
-        parseFloat(document.getElementById('p-pago').value) || 0,
-        parseInt(document.getElementById('p-dias').value) || 0,
-        parseFloat(document.getElementById('p-tasa').value) || 0,
-        parseFloat(document.getElementById('p-bcv').value) || 0,
-        document.getElementById('p-subpago').value,
-        document.getElementById('p-observacion').value
+        document.getElementById('p-fecha').value, document.getElementById('p-proveedor').value,
+        document.getElementById('p-tipo').value, document.getElementById('p-docu').value,
+        parseFloat(document.getElementById('p-compra').value)||0, parseFloat(document.getElementById('p-pago').value)||0,
+        parseInt(document.getElementById('p-dias').value)||0, parseFloat(document.getElementById('p-tasa').value)||0,
+        parseFloat(document.getElementById('p-bcv').value)||0, document.getElementById('p-subpago').value, document.getElementById('p-observacion').value
       );
 
-      google.script.run
-        .withSuccessHandler(function(response) {
-          toggleLoader(false);
-          if(response.success) {
-            alert('¡Operación guardada de forma exitosa!');
-            document.getElementById('p-compra').value = "0.00";
-            document.getElementById('p-pago').value = "0.00";
-            document.getElementById('p-docu').value = "";
-            document.getElementById('p-observacion').value = "";
-            document.getElementById('p-dias').value = "0";
-            document.getElementById('p-proveedor').selectedIndex = 0;
-            if(document.getElementById('p-subpago')) document.getElementById('p-subpago').selectedIndex = 0;
-          } else {
-            alert('Error: ' + response.message);
-          }
-        })
-        .registrarOperacionProveedorBackend(payload);
+      google.script.run.withSuccessHandler(function(response) {
+        if(response.success) {
+          google.script.run.withSuccessHandler(function(nuevosDatos) {
+            cacheProveedoresTabla = nuevosDatos;
+            alert('¡Operación registrada de forma exitosa!');
+            cambiarModulo('Formulario');
+          }).obtenerDatosProveedoresBackend();
+        } else { alert('Error: ' + response.message); toggleLoader(false); }
+      }).registrarOperacionProveedorBackend(payload);
     }
 
     function abrirModalEdicion(rowNum) {
       const registro = cacheProveedoresTabla.find(r => r.rowNum === rowNum);
       if(!registro) return;
-
       document.getElementById('edit-rowNum').value = rowNum;
-      let partes = registro.fecha.split('/');
-      if(partes.length === 3) document.getElementById('edit-fecha').value = `${partes[2]}-${partes[1]}-${partes[0]}`;
-
-      let pCombo = "";
-      catalogosForm.proveedores.forEach(p => pCombo += `<option value="${p}" ${p === registro.proveedor ? 'selected':''}>${p}</option>`);
+      document.getElementById('edit-fecha').value = registro.fecha;
+      let pCombo = ""; catalogosForm.proveedores.forEach(p => pCombo += `<option value="${p}" ${p === registro.proveedor ? 'selected':''}>${p}</option>`);
       document.getElementById('edit-proveedor').innerHTML = pCombo;
-
-      let tpCombo = "";
-      catalogosForm.tiposPago.forEach(tp => tpCombo += `<option value="${tp}" ${tp === registro.tipoPago ? 'selected':''}>${tp}</option>`);
+      let tpCombo = ""; catalogosForm.tiposPago.forEach(tp => tpCombo += `<option value="${tp}" ${tp === registro.tipoPago ? 'selected':''}>${tp}</option>`);
       document.getElementById('edit-subpago').innerHTML = tpCombo;
-
       document.getElementById('edit-tipo').value = registro.tipo;
       document.getElementById('edit-docu').value = registro.docu;
       document.getElementById('edit-compra').value = registro.compra;
@@ -493,7 +621,6 @@
       document.getElementById('edit-tasa').value = registro.tasa;
       document.getElementById('edit-bcv').value = registro.bcv;
       document.getElementById('edit-observacion').value = registro.observacion;
-
       bootstrapModalInstancia.show();
     }
 
@@ -501,34 +628,48 @@
       e.preventDefault();
       bootstrapModalInstancia.hide();
       toggleLoader(true);
-
-      const rNum = document.getElementById('edit-rowNum').value;
+      const rNum = parseInt(document.getElementById('edit-rowNum').value);
       const payload = calcularEstructuraPayload(
-        document.getElementById('edit-fecha').value,
-        document.getElementById('edit-proveedor').value,
-        document.getElementById('edit-tipo').value,
-        document.getElementById('edit-docu').value,
-        parseFloat(document.getElementById('edit-compra').value) || 0,
-        parseFloat(document.getElementById('edit-pago').value) || 0,
-        parseInt(document.getElementById('edit-dias').value) || 0,
-        parseFloat(document.getElementById('edit-tasa').value) || 0,
-        parseFloat(document.getElementById('edit-bcv').value) || 0,
-        document.getElementById('edit-subpago').value,
-        document.getElementById('edit-observacion').value
+        document.getElementById('edit-fecha').value, document.getElementById('edit-proveedor').value,
+        document.getElementById('edit-tipo').value, document.getElementById('edit-docu').value,
+        parseFloat(document.getElementById('edit-compra').value)||0, parseFloat(document.getElementById('edit-pago').value)||0,
+        parseInt(document.getElementById('edit-dias').value)||0, parseFloat(document.getElementById('edit-tasa').value)||0,
+        parseFloat(document.getElementById('edit-bcv').value)||0, document.getElementById('edit-subpago').value, document.getElementById('edit-observacion').value
       );
 
       google.script.run.withSuccessHandler(function(res) {
-        if(res.success) cambiarModulo('Detail');
-        else { alert(res.message); toggleLoader(false); }
+        if(res.success) {
+          if (cacheProveedoresTabla) {
+            const index = cacheProveedoresTabla.findIndex(r => r.rowNum === rNum);
+            if (index !== -1) {
+              payload.rowNum = rNum;
+              cacheProveedoresTabla[index] = payload;
+            }
+          }
+          filtrarTablaProveedores();
+          toggleLoader(false);
+        } else { alert(res.message); toggleLoader(false); }
+      }).withFailureHandler(function(err) {
+        alert(err.toString());
+        toggleLoader(false);
       }).editarOperacionProveedorBackend(rNum, payload);
     }
 
     function solicitarEliminacion(rowNum) {
-      if(confirm('¿Deseas eliminar permanentemente esta operación?')) {
+      if(confirm('¿Estás seguro de eliminar este registro?')) {
         toggleLoader(true);
         google.script.run.withSuccessHandler(function(res) {
-          if(res.success) cambiarModulo('Detail');
-          else { alert(res.message); toggleLoader(false); }
+          if(res.success) {
+            cacheProveedoresTabla = cacheProveedoresTabla.filter(r => r.rowNum !== rowNum);
+            cacheProveedoresTabla.forEach(r => {
+              if (r.rowNum > rowNum) r.rowNum = r.rowNum - 1;
+            });
+            inyectarFilasProveedores(cacheProveedoresTabla);
+            toggleLoader(false);
+          } else { alert(res.message); toggleLoader(false); }
+        }).withFailureHandler(function(err) {
+          alert(err.toString());
+          toggleLoader(false);
         }).eliminarOperacionProveedorBackend(rowNum);
       }
     }
