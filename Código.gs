@@ -1,86 +1,34 @@
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQMd7oOMFdMuEWG5nvflNSptgLu1paKr5znNdaqCqoM8svH2weVz4-Zgyo8twnIUTrnjF7lvuap8x0t/pub?output=csv";
+/**
+ * Servidor: Código.gs
+ * Sistema de Control de Proveedores - Repuestos VZLA
+ */
 
 function doGet() {
-  return HtmlService.createTemplateFromFile('Login')
+  return HtmlService.createTemplateFromFile('Index')
     .evaluate()
     .setTitle('Repuestos VZLA - Control de Proveedores')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-function iniciarSesion(usuario, contrasena) {
+/**
+ * OBTIENE Y NORMALIZA LOS DATOS DIRECTAMENTE DESDE LA PESTAÑA 'DATOS' 
+ */
+function obtenerDatosProveedoresBackend() {
   try {
     const libro = SpreadsheetApp.getActiveSpreadsheet();
-    const hojaUsuarios = libro.getSheetByName("USUARIOS");
-
-    if (!hojaUsuarios) {
-      if (usuario.toLowerCase() === "admin" && contrasena === "1234") {
-        return { success: true, usuario: "ADMIN", permiso: "TOTAL" };
-      }
-      return { success: false, message: "Error: No se encontró la pestaña 'USUARIOS'." };
-    }
-
-    const ultimaFila = hojaUsuarios.getLastRow();
-    const datos = hojaUsuarios.getRange(2, 1, ultimaFila - 1, 3).getValues();
-
-    for (let i = 0; i < datos.length; i++) {
-      let usuarioHoja = datos[i][0] ? datos[i][0].toString().trim() : "";
-      let claveHoja = datos[i][1] ? datos[i][1].toString().trim() : "";
-      let permisoHoja = datos[i][2] ? datos[i][2].toString().trim().toUpperCase() : "LECTURA";
-
-      if (usuarioHoja.toLowerCase() === usuario.toLowerCase().trim() && claveHoja === contrasena.trim()) {
-        return { success: true, usuario: usuarioHoja.toUpperCase(), permiso: permisoHoja };
-      }
-    }
-
-    return { success: false, message: "Usuario o contraseña incorrectos." };
-  } catch (error) {
-    return { success: false, message: "Error en login: " + error.toString() };
-  }
-}
-
-function obtenerListasFormularioBackend() {
-  try {
-    const libro = SpreadsheetApp.getActiveSpreadsheet();
+    const hojaDatos = libro.getSheetByName("DATOS");
+    if (!hojaDatos) return [];
     
-    let proveedores = [];
-    let hProv = libro.getSheetByName("PROVEEDORES");
-    if (hProv && hProv.getLastRow() >= 2) {
-      proveedores = hProv.getRange(2, 1, hProv.getLastRow() - 1, 1).getValues().map(r => r[0].toString().trim()).filter(Boolean);
-    }
-
-    let tasaRef = 0;
-    let bcvRef = 0;
-    let hTasa = libro.getSheetByName("TASA");
-    if (hTasa && hTasa.getLastRow() >= 2) {
-      tasaRef = parseFloat(hTasa.getRange(2, 1).getValue()) || 0;
-      bcvRef = parseFloat(hTasa.getRange(2, 2).getValue()) || 0;
-    }
-
-    let tiposPago = [];
-    let hPago = libro.getSheetByName("T-PAGO");
-    if (hPago && hPago.getLastRow() >= 2) {
-      tiposPago = hPago.getRange(2, 1, hPago.getLastRow() - 1, 1).getValues().map(r => r[0].toString().trim()).filter(Boolean);
-    }
-
-    return {
-      proveedores: proveedores.sort(),
-      tasa: tasaRef,
-      bcv: bcvRef,
-      tiposPago: tiposPago.sort()
-    };
-  } catch (e) {
-    return { proveedores: [], tasa: 0, bcv: 0, tiposPago: [] };
-  }
-}
-
-function obtenerDatosProveedoresBackend(usuarioActual, permisoActual) {
-  try {
-    const respuesta = UrlFetchApp.fetch(CSV_URL);
-    const contenidoCsv = respuesta.getContentText();
-    const matriz = Utilities.parseCsv(contenidoCsv);
-    if (matriz.length <= 1) return [];
-
-    const cabecera = matriz[0].map(h => h.toString().trim().toUpperCase());
+    const ultimaFila = hojaDatos.getLastRow();
+    if (ultimaFila <= 1) return [];
+    
+    // Obtenemos los valores y los valores formateados visibles en pantalla
+    const rangoCompleto = hojaDatos.getRange(1, 1, ultimaFila, 16);
+    const matrizValores = rangoCompleto.getValues();
+    const matrizVisibles = rangoCompleto.getDisplayValues(); // Trae las fechas y números exactos como se ven
+    
+    const cabecera = matrizValores[0].map(h => h.toString().trim().toUpperCase());
+    
     const idxFecha = cabecera.indexOf("FECHA");
     const idxProveedor = cabecera.indexOf("PROVEEDOR");
     const idxTipo = cabecera.indexOf("TIPO");
@@ -97,49 +45,143 @@ function obtenerDatosProveedoresBackend(usuarioActual, permisoActual) {
     const idxPagoTasa = cabecera.indexOf("PAGO TASA");
     const idxDif = cabecera.indexOf("DIFERENCIA");
     const idxObs = cabecera.indexOf("OBSERVACIONES");
-
+    
     const registros = [];
+    const tz = Session.getScriptTimeZone();
 
-    function parseDecimalRegional(texto) {
-      if (!texto) return 0;
-      let cadena = texto.toString().trim();
-      if (cadena.includes('.') && cadena.includes(',')) {
-        cadena = cadena.replace(/\./g, '').replace(',', '.');
-      } else if (cadena.includes(',')) {
-        cadena = cadena.replace(',', '.');
+    for (let i = 1; i < matrizValores.length; i++) {
+      let filaValores = matrizValores[i];
+      let filaVisibles = matrizVisibles[i];
+      
+      // Si la fila completa está totalmente en blanco, la omitimos
+      if (!filaValores.join("").trim()) continue;
+      
+      // Asegurar que el nombre del proveedor exista
+      let provNombre = (filaValores[idxProveedor] || "").toString().trim();
+      if (!provNombre) continue; 
+      
+      // Formatear Fecha de Emisión de forma segura basada en el valor de pantalla
+      let fechaEstandar = "";
+      let visibleFecha = filaVisibles[idxFecha].trim();
+      if (visibleFecha) {
+        if (visibleFecha.includes('/')) {
+          let partes = visibleFecha.split('/');
+          if (partes.length === 3) {
+            // Manejar formatos d/m/yyyy y dd/mm/yyyy
+            let dia = partes[0].padStart(2, '0');
+            let mes = partes[1].padStart(2, '0');
+            let anio = partes[2].length === 2 ? "20" + partes[2] : partes[2];
+            fechaEstandar = `${anio}-${mes}-${dia}`;
+          }
+        } else if (visibleFecha.includes('-')) {
+          let partes = visibleFecha.split('-');
+          if (partes[0].length === 4) {
+            fechaEstandar = visibleFecha.substring(0, 10);
+          } else if (partes.length === 3) {
+            let dia = partes[0].padStart(2, '0');
+            let mes = partes[1].padStart(2, '0');
+            let anio = partes[2].length === 2 ? "20" + partes[2] : partes[2];
+            fechaEstandar = `${anio}-${mes}-${dia}`;
+          }
+        }
       }
-      const num = parseFloat(cadena);
-      return isNaN(num) ? 0 : num;
-    }
-
-    for (let i = 1; i < matriz.length; i++) {
-      let fila = matriz[i];
-      if (!fila[idxProveedor]) continue;
-
+      
+      // Si falla la conversión del valor visible, usamos la fecha cruda del objeto Date
+      if (!fechaEstandar && filaValores[idxFecha] instanceof Date) {
+        fechaEstandar = Utilities.formatDate(filaValores[idxFecha], tz, "yyyy-MM-dd");
+      }
+      
+      // Formatear Fecha de Vencimiento de forma segura
+      let venceEstandar = "";
+      let visibleVence = filaVisibles[idxVence].trim();
+      if (visibleVence) {
+        if (visibleVence.includes('/')) {
+          let p = visibleVence.split('/');
+          if (p.length === 3) {
+            let dia = p[0].padStart(2, '0');
+            let mes = p[1].padStart(2, '0');
+            let anio = p[2].length === 2 ? "20" + p[2] : p[2];
+            venceEstandar = `${anio}-${mes}-${dia}`;
+          }
+        } else if (visibleVence.includes('-')) {
+          let p = visibleVence.split('-');
+          if (p[0].length === 4) {
+            venceEstandar = visibleVence.substring(0, 10);
+          } else if (p.length === 3) {
+            let dia = p[0].padStart(2, '0');
+            let mes = p[1].padStart(2, '0');
+            let anio = p[2].length === 2 ? "20" + p[2] : p[2];
+            venceEstandar = `${anio}-${mes}-${dia}`;
+          }
+        }
+      }
+      
+      if (!venceEstandar && filaValores[idxVence] instanceof Date) {
+        venceEstandar = Utilities.formatDate(filaValores[idxVence], tz, "yyyy-MM-dd");
+      }
+      
       registros.push({
         rowNum: i + 1,
-        fecha: fila[idxFecha] || "",
-        proveedor: fila[idxProveedor].toString().trim(),
-        tipo: fila[idxTipo] || "",
-        docu: fila[idxDocu] || "",
-        compra: parseDecimalRegional(fila[idxCompra]),
-        pago: parseDecimalRegional(fila[idxPago]),
-        dias: parseInt(fila[idxDias]) || 0,
-        vence: fila[idxVence] || "",
-        tipoPago: fila[idxTipoPago] || "",
-        tasa: parseDecimalRegional(fila[idxTasa]),
-        bcv: parseDecimalRegional(fila[idxBcv]),
-        bolivares: parseDecimalRegional(fila[idxBolivares]),
-        pagoBcv: parseDecimalRegional(fila[idxPagoBcv]),
-        pagoTasa: parseDecimalRegional(fila[idxPagoTasa]),
-        diferencia: parseDecimalRegional(fila[idxDif]),
-        observacion: fila[idxObs] || ""
+        fecha: fechaEstandar,
+        proveedor: provNombre,
+        tipo: (filaValores[idxTipo] || "").toString().trim().toUpperCase(),
+        docu: (filaValores[idxDocu] || "").toString().trim(),
+        compra: parseFloat(filaValores[idxCompra]) || 0,
+        pago: parseFloat(filaValores[idxPago]) || 0,
+        dias: parseInt(filaValores[idxDias]) || 0,
+        vence: venceEstandar,
+        tipoPago: (filaValores[idxTipoPago] || "").toString().trim(),
+        tasa: parseFloat(filaValores[idxTasa]) || 0,
+        bcv: parseFloat(filaValores[idxBcv]) || 0,
+        bolivares: parseFloat(filaValores[idxBolivares]) || 0,
+        pagoBcv: parseFloat(filaValores[idxPagoBcv]) || 0,
+        pagoTasa: parseFloat(filaValores[idxPagoTasa]) || 0,
+        diferencia: parseFloat(filaValores[idxDif]) || 0,
+        observacion: (filaValores[idxObs] || "").toString().trim()
       });
     }
-
+    
     return registros.reverse();
   } catch (e) {
+    Logger.log("Error en obtenerDatosProveedoresBackend: " + e.toString());
     return [];
+  }
+}
+
+/**
+ * CARGA DE CATÁLOGOS DESDE LAS HOJAS LOCALES del SPREADSHEET
+ */
+function obtenerListasFormularioBackend() {
+  try {
+    const libro = SpreadsheetApp.getActiveSpreadsheet();
+    let proveedores = [];
+    let hProv = libro.getSheetByName("PROVEEDORES");
+    if (hProv && hProv.getLastRow() >= 2) {
+      proveedores = hProv.getRange(2, 1, hProv.getLastRow() - 1, 1).getValues().map(r => r[0].toString().trim()).filter(Boolean);
+    }
+    
+    let tasaRef = 0;
+    let bcvRef = 0;
+    let hTasa = libro.getSheetByName("TASA");
+    if (hTasa && hTasa.getLastRow() >= 2) {
+      tasaRef = parseFloat(hTasa.getRange(2, 1).getValue()) || 0;
+      bcvRef = parseFloat(hTasa.getRange(2, 2).getValue()) || 0;
+    }
+    
+    let tiposPago = [];
+    let hPago = libro.getSheetByName("T-PAGO");
+    if (hPago && hPago.getLastRow() >= 2) {
+      tiposPago = hPago.getRange(2, 1, hPago.getLastRow() - 1, 1).getValues().map(r => r[0].toString().trim()).filter(Boolean);
+    }
+    
+    return {
+      proveedores: proveedores,
+      tasa: tasaRef,
+      bcv: bcvRef,
+      tiposPago: tiposPago
+    };
+  } catch (e) {
+    return { proveedores: [], tasa: 0, bcv: 0, tiposPago: [] };
   }
 }
 
@@ -148,17 +190,17 @@ function registrarOperacionProveedorBackend(objetoDatos) {
     const libro = SpreadsheetApp.getActiveSpreadsheet();
     const hojaDatos = libro.getSheetByName("DATOS");
     if (!hojaDatos) return { success: false, message: "No se encontró la pestaña 'DATOS'." };
-
+    
     let fechaFormateada = new Date(objetoDatos.fecha);
     fechaFormateada.setMinutes(fechaFormateada.getMinutes() + fechaFormateada.getTimezoneOffset());
-
+    
     let venceFormateada = "";
     if (objetoDatos.vence) {
       venceFormateada = new Date(objetoDatos.vence);
       venceFormateada.setMinutes(venceFormateada.getMinutes() + venceFormateada.getTimezoneOffset());
     }
-
-    hojaDatos.appendRow([
+    
+    const nuevaFila = [
       fechaFormateada,
       objetoDatos.proveedor,
       objetoDatos.tipo,
@@ -175,8 +217,9 @@ function registrarOperacionProveedorBackend(objetoDatos) {
       objetoDatos.pagoTasa,
       objetoDatos.diferencia,
       objetoDatos.observacion
-    ]);
-
+    ];
+    
+    hojaDatos.appendRow(nuevaFila);
     return { success: true, message: "Operación registrada exitosamente." };
   } catch (error) {
     return { success: false, message: "Error al guardar: " + error.toString() };
@@ -188,16 +231,16 @@ function editarOperacionProveedorBackend(rowNum, objetoDatos) {
     const libro = SpreadsheetApp.getActiveSpreadsheet();
     const hojaDatos = libro.getSheetByName("DATOS");
     if (!hojaDatos) return { success: false, message: "No se encontró la pestaña 'DATOS'." };
-
+    
     let fechaFormateada = new Date(objetoDatos.fecha);
     fechaFormateada.setMinutes(fechaFormateada.getMinutes() + fechaFormateada.getTimezoneOffset());
-
+    
     let venceFormateada = "";
     if (objetoDatos.vence) {
       venceFormateada = new Date(objetoDatos.vence);
       venceFormateada.setMinutes(venceFormateada.getMinutes() + venceFormateada.getTimezoneOffset());
     }
-
+    
     const rangoFila = hojaDatos.getRange(rowNum, 1, 1, 16);
     rangoFila.setValues([[
       fechaFormateada,
@@ -217,7 +260,7 @@ function editarOperacionProveedorBackend(rowNum, objetoDatos) {
       objetoDatos.diferencia,
       objetoDatos.observacion
     ]]);
-
+    
     return { success: true, message: "Registro actualizado correctamente." };
   } catch (error) {
     return { success: false, message: "Error al editar: " + error.toString() };
@@ -229,9 +272,9 @@ function eliminarOperacionProveedorBackend(rowNum) {
     const libro = SpreadsheetApp.getActiveSpreadsheet();
     const hojaDatos = libro.getSheetByName("DATOS");
     if (!hojaDatos) return { success: false, message: "No se encontró la pestaña 'DATOS'." };
-
+    
     hojaDatos.deleteRow(rowNum);
-    return { success: true, message: "Registro eliminado correctamente de la base de datos." };
+    return { success: true, message: "Registro eliminado correctamente." };
   } catch (error) {
     return { success: false, message: "Error al eliminar: " + error.toString() };
   }
